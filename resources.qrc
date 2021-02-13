@@ -1,0 +1,12 @@
+<!DOCTYPE RCC><RCC version="1.0">
+    <qresource>
+        <file alias="pacman.png">sprites/pacman.png</file>
+        <file alias="small.png">sprites/small.png</file>
+        <file alias="large.png">sprites/large.png</file>
+        <file alias="blinky.png">sprites/blinky.png</file>
+        <file alias="inky.png">sprites/inky.png</file>
+        <file alias="pinky.png">sprites/pinky.png</file>
+        <file alias="clyde.png">sprites/clyde.png</file>
+        <file alias="frightened.png">sprites/frightened.png</file>
+    </qresource>
+</RCC>
