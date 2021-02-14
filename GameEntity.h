@@ -2,13 +2,14 @@
 #include <QGraphicsPixmapItem>
 #include <QObject>
 #include <QGraphicsScene>
+
 class GameEntity: public QObject, public QGraphicsPixmapItem {
   Q_OBJECT
 protected:
   QPointF centre;
   int prev_dir;
-  const int STEP_PL = 1;
-  const double STEP_GH = 1.1;
+  const double STEP_PL = 1;
+  const double STEP_GH = 1.1, STEP_FG = 0.9;
   enum directions {
     LEFT = -1,
     RIGHT = 1,

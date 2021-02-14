@@ -1,9 +1,10 @@
 #include <cmath>
 
-#include "Ghost.h"
 #include "Crossroad.h"
-#include "Wall.h"
 #include "Game.h"
+#include "Ghost.h"
+#include "GhostTile.h"
+#include "Wall.h"
 #include <QDebug>
 
 #define PHASE_TIME 7
@@ -11,29 +12,36 @@
 #define DIRECTION_UNAVAILABLE std::numeric_limits<double>::max()
 
 void Ghost::tick() {
-  if(state != FRIGHTENED){
-    counter++;
-    if(counter % (GAME_SPEED * PHASE_TIME) == 0){
-      counter -= (GAME_SPEED * PHASE_TIME);
-      if(state == CHASE){
-        state = SCATTER;
+  if(state != INACTIVE){
+    if(state != FRIGHTENED){
+      counter++;
+      if(counter % (GAME_SPEED * PHASE_TIME) == 0){
+        counter -= (GAME_SPEED * PHASE_TIME);
+        if(state == CHASE){
+          state = SCATTER;
+        }
+        else if(state == SCATTER){
+          state = CHASE;
+        }
+        direction = -direction;
+        prev_dir = -direction;
       }
-      else if(state == SCATTER){
-        state = CHASE;
+    }
+    else if (state == FRIGHTENED){
+      ++frightenTime;
+      if(frightenTime % (GAME_SPEED * FRIGHTEN_TIME) == 0){
+        frightenTime = 0;
+        state = prevState;
+        setPixmap(normal->scaled((int)scene->width() / 28 - 1, (int)scene->height() / 31 - 1));
       }
-      direction = -direction;
-      prev_dir = -direction;
+    }
+    move();
+  } else{
+    timeout--;
+    if(timeout == 0){
+      state = PREPARE;
     }
   }
-  else if (state == FRIGHTENED){
-    ++frightenTime;
-    if(frightenTime % (GAME_SPEED * FRIGHTEN_TIME) == 0){
-      frightenTime = 0;
-      state = prevState;
-      setPixmap(normal->scaled((int)scene->width() / 28 - 1, (int)scene->height() / 31 - 1));
-    }
-  }
-  move();
 }
 
 double Ghost::calculateDistance(int direction) {
@@ -51,23 +59,27 @@ double Ghost::calculateDistance(int direction) {
   case DOWN:
     predictedTile->setPos(x(), y() + boundingRect().height());
     break;
+  default:
+    predictedTile->setPos(x(), y());
   }
   centre = QPointF((2 * predictedTile->x() + predictedTile->boundingRect().width()) / 2, (2 * predictedTile->y() + predictedTile->boundingRect().height()) / 2);
   double temp;
-  if(state == CHASE){
-    temp = sqrt(pow(centre.x() - movementTarget.x(), 2) + pow(centre.y() - movementTarget.y(), 2));
-  }
-  else{
-    temp = sqrt(pow(centre.x() - scatterPoint.x(), 2) + pow(centre.y() - scatterPoint.y(), 2));
-  }
+  temp = sqrt(pow(centre.x() - movementTarget.x(), 2) + pow(centre.y() - movementTarget.y(), 2));
   delete predictedTile;
   return temp;
 }
 
 void Ghost::decideDirection() {
-  createTarget();
+  if(state == CHASE || state == FRIGHTENED){
+    createTarget();
+  }
+  else if(state == SCATTER){
+    movementTarget = scatterPoint;
+  }
+  else{
+    movementTarget = startingPoint;
+  }
   double distanceToTarget[5];
-  movementTarget = player->getCentre();
   if(!wallCollision){
     prev_dir = direction;
   }
@@ -77,9 +89,8 @@ void Ghost::decideDirection() {
   for(int i = UP; i <= DOWN; ++i){
     if(i == 0){
       distanceToTarget[i + 2] = DIRECTION_UNAVAILABLE;
-      continue;
     }
-    if(i == -direction){
+    else if(i == -direction){
       distanceToTarget[i + 2] = DIRECTION_UNAVAILABLE;
     }
     else if(wallCollision && (i == wallDirection || i == prevWallDirection)){
@@ -89,7 +100,7 @@ void Ghost::decideDirection() {
       distanceToTarget[i + 2] = calculateDistance(i);
     }
   }
-  double minDistance = DIRECTION_UNAVAILABLE;
+  double minDistance = std::numeric_limits<double>::max();
   if(state != FRIGHTENED){
     for(double distance : distanceToTarget){
       if(minDistance > distance){
@@ -118,9 +129,21 @@ void Ghost::decideDirection() {
   }
 }
 
-bool Ghost::isCollidingWall() {
+bool Ghost::handleCollision() {
   QList<QGraphicsItem*> list = collidingItems();
   for(auto item : list){
+    if(typeid(*item) == typeid(Player)){
+      if(state == FRIGHTENED){
+        state = EATEN;
+        direction = -direction;
+        setPixmap(eaten->scaled((int)scene->width() / 28 - 1, (int)scene->height() / 31 - 1));
+        frightenTime = 0;
+        emit eatenSignal(VALUE);
+      }
+      else if(state != EATEN){
+        //emit touchedPlayer();
+      }
+    }
     if(typeid(*item) == typeid(Wall)){
       switch(direction) {
       case LEFT:
@@ -148,9 +171,27 @@ bool Ghost::isOnCrossroad() {
   for(auto tile : tiles){
     if(typeid(*tile) == typeid(Crossroad)){
       if(((Crossroad*)tile)->properContains(*tempHitbox) && (tile != lastCrossroad || wallCollision)){
+        if(state == PREPARE){
+          setPixmap(normal->scaled((int)scene->width() / 28 - 1, (int)scene->height() / 31 - 1));
+          direction = UP;
+        }
         isOnCrossroadFlag = true;
         lastCrossroad = (Crossroad*)tile;
         break;
+      }
+    }
+
+    if(typeid(*tile) == typeid(GhostTile)){
+      if(((GhostTile*)tile)->properContains(*tempHitbox)){
+        if(state == PREPARE){
+          state = CHASE;
+          direction = LEFT;
+          break;
+        }
+        if(state == EATEN){
+          state = PREPARE;
+          direction = DOWN;
+        }
       }
     }
   }
@@ -166,21 +207,39 @@ void Ghost::move() {
   if(isOnCrossroad()){
     decideDirection();
   }
-  switch(direction){
-  case LEFT:
-    setX(x() - STEP_GH);
-    break;
-  case RIGHT:
-    setX(x() + STEP_GH);
-    break;
-  case UP:
-    setY(y() - STEP_GH);
-    break;
-  case DOWN:
-    setY(y() + STEP_GH);
-    break;
+  if(state != FRIGHTENED){
+    switch(direction){
+    case LEFT:
+      setX(x() - STEP_GH);
+      break;
+    case RIGHT:
+      setX(x() + STEP_GH);
+      break;
+    case UP:
+      setY(y() - STEP_GH);
+      break;
+    case DOWN:
+      setY(y() + STEP_GH);
+      break;
+    }
   }
-  wallCollision = isCollidingWall();
+  else{
+    switch(direction){
+    case LEFT:
+      setX(x() - STEP_FG);
+      break;
+    case RIGHT:
+      setX(x() + STEP_FG);
+      break;
+    case UP:
+      setY(y() - STEP_FG);
+      break;
+    case DOWN:
+      setY(y() + STEP_FG);
+      break;
+    }
+  }
+  wallCollision = handleCollision();
   if(wallCollision){
     if(wallDirection != 0){
       prevWallDirection = wallDirection;
@@ -195,10 +254,11 @@ void Ghost::move() {
 }
 
 void Ghost::frighten() {
-  prevState = state;
-  state = FRIGHTENED;
-  prev_dir = direction;
-  direction = -direction;
-  setPixmap(scared->scaled((int)scene->width() / 28 - 1, (int)scene->height() / 31 - 1));
-  frightenTime = 0;
+  if(state == CHASE || state == SCATTER) {
+    prevState = state;
+    state = FRIGHTENED;
+    prev_dir = direction;
+    direction = -direction;
+    setPixmap(scared->scaled((int)scene->width() / 28 - 1,(int)scene->height() / 31 - 1));
+  }
 }

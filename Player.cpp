@@ -49,6 +49,12 @@ void Player::keyPressEvent(QKeyEvent *e) {
   pressedKey = e->key();
 }
 
+void Player::keyReleaseEvent(QKeyEvent* e){
+  if(e->key() == pressedKey){
+    pressedKey = 0;
+  }
+}
+
 bool Player::checkCrossroad() {
   hitbox = QRectF(x(), y(), boundingRect().width(), boundingRect().height());
   QList<QGraphicsItem*> tiles = collidingItems();
@@ -62,11 +68,11 @@ bool Player::checkCrossroad() {
   return false;
 }
 
-void Player::checkCollision(){
-  QList<QGraphicsItem*> collisions = collidingItems();
-  for(auto item : collisions){
-    if(typeid(*item) == typeid(Wall)){
-      switch(direction) {
+void Player::checkCollision() {
+  QList<QGraphicsItem *> collisions = collidingItems();
+  for (auto item : collisions) {
+    if (typeid(*item) == typeid(Wall)) {
+      switch (direction) {
       case LEFT:
         setX(item->boundingRect().right());
         return;
@@ -80,10 +86,10 @@ void Player::checkCollision(){
         setY(item->boundingRect().top() - boundingRect().height());
         return;
       }
-    }
-    else if(typeid(*item) == typeid(GamePoint) || typeid(*item) == typeid(BigGamePoint)){
-      ((GamePoint*)item)->getEaten();
-      if(typeid(*item) == typeid(BigGamePoint)){
+    } else if (typeid(*item) == typeid(GamePoint) ||
+               typeid(*item) == typeid(BigGamePoint)) {
+      ((GamePoint *)item)->getEaten();
+      if (typeid(*item) == typeid(BigGamePoint)) {
         emit invulnerable();
       }
     }
@@ -110,7 +116,10 @@ void Player::processInput(){
     return;
   }
   bool onCrossroad = checkCrossroad();
-  if(direction != -prev_dir && !onCrossroad){
+  if((direction != -prev_dir && !onCrossroad)){
     direction = prev_dir;
   }
+}
+int Player::getDirection() {
+  return direction;
 }

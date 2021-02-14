@@ -1,7 +1,5 @@
 #include <QApplication>
 
-#include <iostream>
-
 #include "Window.h"
 
 #define WIDTH 27*30

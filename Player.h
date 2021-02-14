@@ -14,8 +14,10 @@ public:
   explicit Player(qreal x, qreal y, QGraphicsScene* scene);
   void move() override;
   void keyPressEvent(QKeyEvent* e) override;
+  void keyReleaseEvent(QKeyEvent* e) override;
   void checkCollision();
   bool checkCrossroad();
+  int getDirection();
 public slots:
   void tick() override;
 signals:

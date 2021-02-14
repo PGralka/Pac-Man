@@ -2,6 +2,8 @@
 #include "Scoreboard.h"
 #include <QGraphicsPixmapItem>
 
+// TODO improve gamepoints classes
+
 class GamePoint:public QObject, public QGraphicsPixmapItem {
   Q_OBJECT
 protected:
