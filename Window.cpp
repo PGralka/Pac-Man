@@ -4,6 +4,8 @@
 #include <QGraphicsScene>
 #include <QKeyEvent>
 #include <QVBoxLayout>
+#include <QDebug>
+#include <QCoreApplication>
 
 QGraphicsScene* prepareScene(int width, int height);
 

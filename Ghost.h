@@ -3,27 +3,33 @@
 #include "GameEntity.h"
 #include "Player.h"
 
+#define INACTIVITY_SECONDS 6
+
 class Ghost:public GameEntity {
   Q_OBJECT
 protected:
   enum states{
+    PREPARE = -2,
+    INACTIVE = -1,
     CHASE = 0,
     SCATTER = 1,
     EATEN = 2,
     FRIGHTENED = 3
   };
-  int state, prevState, counter = 0, frightenTime;
+  const int VALUE = 1000;
+  int timeout, state, prevState, counter = 0, frightenTime = 0;
   bool wallCollision = false;
-  QPointF movementTarget, scatterPoint;
+  QPointF movementTarget, scatterPoint, startingPoint;
   Player* player;
   QGraphicsRectItem* predictedTile;
   Crossroad* lastCrossroad;
   QPixmap* normal;
   QPixmap* scared = new QPixmap(":/frightened.png");
+  QPixmap* eaten = new QPixmap(":/eaten.png");
   int wallDirection = 0, prevWallDirection = 0;
   double calculateDistance(int direction);
   void decideDirection();
-  bool isCollidingWall();
+  bool handleCollision();
   bool isOnCrossroad();
   void move() override;
   virtual void createTarget()=0;
@@ -32,4 +38,7 @@ public:
 public slots:
   void tick() override;
   void frighten();
+signals:
+  void touchedPlayer();
+  void eatenSignal(int);
 };

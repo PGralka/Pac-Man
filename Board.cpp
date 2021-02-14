@@ -1,8 +1,12 @@
 #include "Board.h"
 #include "BigGamePoint.h"
 #include "Blinky.h"
+#include "Clyde.h"
 #include "Crossroad.h"
 #include "GamePoint.h"
+#include "GhostTile.h"
+#include "Inky.h"
+#include "Pinky.h"
 #include "Player.h"
 #include "Scoreboard.h"
 #include "Wall.h"
@@ -19,6 +23,9 @@
 #define PELLET '*'
 #define BIG_PELLET 'O'
 #define BLINKY 'b'
+#define PINKY 'p'
+#define INKY 'i'
+#define CLYDE 'g'
 
 Board::Board() = default;
 
@@ -44,7 +51,7 @@ void Board::prepareBoard(QGraphicsScene* scene){
                                 {"wwwwww*wwr  rb r  rww*wwwwww"},
                                 {"wwwwww*ww www  www ww*wwwwww"},
                                 {"wwwwww*ww w      w ww*wwwwww"},
-                                {"******c  rwi p g wr  c******"},
+                                {"******c  rwi p  gwr  c******"},
                                 {"wwwwww*ww w      w ww*wwwwww"},
                                 {"wwwwww*ww wwwwwwww ww*wwwwww"},
                                 {"wwwwww*wwr        rww*wwwwww"},
@@ -66,6 +73,7 @@ void Board::prepareBoard(QGraphicsScene* scene){
   qreal h = scene->height()/31;
   auto scoreboard = new Scoreboard();
   Blinky* blinky;
+  QPointF ghostStartingPoint;
   for(int i = 0; i < 31; ++i){
     temp = layout[i];
     for(int j = 0; j < temp.length(); ++j){
@@ -75,24 +83,37 @@ void Board::prepareBoard(QGraphicsScene* scene){
         break;
       case PLAYER:
         player = new Player(j * w, i * h + 1, scene);
-        for(Ghost* entity : ghosts){
-          entity->setPlayer(player);
-          QWidget::connect(player, SIGNAL(invulnerable()), entity, SLOT(frighten()));
+        for(Ghost* ghost : ghosts){
+          ghost->setPlayer(player);
+          QWidget::connect(player, SIGNAL(invulnerable()), ghost, SLOT(frighten()));
+          QWidget::connect(ghost, SIGNAL(eatenSignal(int)), scoreboard, SLOT(increaseScore(int)));
         }
         break;
       case BLINKY:
-        blinky = new Blinky(j * w, i * h + 1, scene);
+        ghostStartingPoint = QPointF((j + 0.5) * w, (i + 0.5) * h);
+        board.append(new GhostTile(j * w, i * h, w, h));
+        blinky = new Blinky(j * w, i * h + 1, scene, ghostStartingPoint);
         ghosts.append(blinky);
         break;
+      case PINKY:
+        board.append(new Crossroad(j * w, i * h - 1, w, h ));
+        ghosts.append(new Pinky(j * w + 1, i * h, scene, ghostStartingPoint));
+        break;
+      case INKY:
+        ghosts.append(new Inky(j * w, i * h, scene, ghostStartingPoint, blinky));
+        break;
+      case CLYDE:
+        ghosts.append(new Clyde(j * w, i * h, scene, ghostStartingPoint));
+        break;
       case CROSSROAD:
-        board.append(new Crossroad(j * w + 1, i * h + 1, w - 1, h - 1));
+        board.append(new Crossroad(j * w, i * h, w, h));
         break;
       case CROSSROAD_WITH_PELLET:
-        board.append(new Crossroad(j * w + 1, i * h + 1, w - 1, h - 1));
+        board.append(new Crossroad(j * w, i * h, w, h));
         board.append(new GamePoint((j + 0.5) * w, (i + 0.5) * h, scoreboard, scene));
         break;
       case CROSSROAD_WITH_BIG_PELLET:
-        board.append(new Crossroad(j * w + 1, i * h + 1, w - 1, h - 1));
+        board.append(new Crossroad(j * w, i * h, w, h));
         board.append(new BigGamePoint((j + 0.5) * w, (i + 0.5) * h, scoreboard, scene));
         break;
       case BIG_PELLET:
@@ -105,12 +126,14 @@ void Board::prepareBoard(QGraphicsScene* scene){
   }
   board.append(scoreboard);
   board.append(player);
-  board.append(blinky);
+  for(Ghost* ghost : ghosts){
+    board.append(ghost);
+  }
 }
 
 Player* Board::getPlayer(){
   return player;
 }
 QList<Ghost*> Board::getGhosts(){
-return ghosts;
+  return ghosts;
 }

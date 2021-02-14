@@ -8,6 +8,7 @@ void GameEntity::horizontalLoop(){
     setX(-boundingRect().width());
   }
 }
+
 QPointF GameEntity::getCentre() {
   return centre;
 }

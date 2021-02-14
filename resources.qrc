@@ -8,5 +8,6 @@
         <file alias="pinky.png">sprites/pinky.png</file>
         <file alias="clyde.png">sprites/clyde.png</file>
         <file alias="frightened.png">sprites/frightened.png</file>
+        <file alias="eaten.png">sprites/eaten.png</file>
     </qresource>
 </RCC>
