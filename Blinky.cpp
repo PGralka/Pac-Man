@@ -2,21 +2,14 @@
 #include "Blinky.h"
 
 #include <QWidget>
-#include <QDebug>
 
-Blinky::Blinky(qreal x, qreal y, QGraphicsScene* scene, QPointF startingPoint) {
-  srand(time(nullptr));
-  this->scene = scene;
-  this->startingPoint = startingPoint;
-  direction = LEFT;
-  scatterPoint = QPointF(scene->width(), 0);
-  state = CHASE;
-  normal = new QPixmap(":/blinky.png");
-  timeout = 0;
-  setPixmap(normal->scaled((int)scene->width() / 28 - 1, (int)scene->height() / 31 - 1));
-  setPos(x, y);
+Blinky::Blinky(qreal x, qreal y, QGraphicsScene* scene, QPointF startingPoint,
+			   QString filename)
+	: Ghost(x, y, scene, startingPoint, filename) {
+	direction = LEFT;
+	scatterPoint = QPointF(scene->width(), 0);
+	state = CHASE;
+	timeout = 0;
 }
 
-void Blinky::createTarget() {
-  movementTarget = player->getCentre();
-}
+void Blinky::createTarget() { movementTarget = player->getCentre(); }

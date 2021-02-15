@@ -4,9 +4,10 @@
 #include <QWindow>
 
 class Window : public QWindow {
-private:
-  Board board;
-public:
-  Window();
-  Window(int width, int height);
+  private:
+	Board board;
+
+  public:
+	Window();
+	Window(int width, int height);
 };
